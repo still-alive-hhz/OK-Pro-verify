@@ -660,7 +660,7 @@ html, body, #app {
 }
 
 div, span, button {
-  color: white;
+  color: blue;
 }
 
 @media (max-width: 768px) {
