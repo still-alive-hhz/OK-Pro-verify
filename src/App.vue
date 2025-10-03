@@ -1,108 +1,160 @@
 <template>
   <div class="app-container w-full min-h-screen relative">
     <!-- 全屏背景 -->
-    <div class="fixed inset-0 -z-10 overflow-hidden bg-black">
+    <div class="fixed inset-0 -z-10 overflow-hidden bg-gradient-to-br from-black to-gray-900">
       <DotGrid
         :dot-size="4"
         :gap="25"
         base-color="#6C7C74"
-        class-name="w-full h-full"
+        class-name="w-full h-full opacity-60"
+        :animate-dots="true"
       />
     </div>
     
     <!-- 主内容区域 - 横向布局 -->
-    <div class="relative z-10 w-full min-h-screen flex justify-center items-center p-4">
+    <div class="relative z-10 w-full min-h-screen flex justify-center items-center p-4 py-12">
       <div class="w-[90%] max-w-[1000px] flex justify-center items-center">
         <Stepper
           :initial-step="1"
           :on-step-change="handleStepChange"
           :on-final-step-completed="handleFinalStepCompleted"
-          :next-button-props="{ class: nextButtonClass }"
+          :next-button-props="{ class: nextButtonClass, onClick: handleNextButtonClick }"
           :lock-on-complete="false"
           :on-next-step="handleNextClick"
           back-button-text="上一步"
           next-button-text="下一步"
           step-circle-container-class-name="
-    w-full max-w-md 
-    p-4 
-    rounded-[2rem] 
-    shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)] 
-    border border-gray-800 
-    bg-black 
-    text-white
-  "
+            w-full max-w-md 
+            p-4 
+            rounded-[2rem] 
+            shadow-[0_20px_25px_-5px_rgba(0,0,0,0.3),0_10px_10px_-5px_rgba(0,0,0,0.2)] 
+            border border-gray-800 
+            bg-gradient-to-br from-gray-900 to-black 
+            text-white
+            backdrop-blur-sm
+          "
           step-container-class-name="flex items-center justify-center w-full mb-8"
           content-class-name="w-full"
           footer-class-name="w-full"
         >
-          <div class="py-4 px-6 text-center w-full">
-    <h2 class="text-2xl font-bold mb-3 text-white">输入卡密</h2>
-    <p class="text-gray-200 mb-3">购买后会自动返回一个12位的卡密</p>
-    
-    <input
-      v-model="key"
-      class="mt-3 px-4 py-3 border border-gray-300 rounded-lg w-full max-w-[300px] bg-black/10 text-white focus:outline-none focus:border-[#1246A4] focus:ring-2 focus:ring-[#1246A4]/30"
-      placeholder="A1B2C3D4E5F6"
-    />
+          <!-- 步骤1：输入卡密 -->
+          <div class="py-4 px-6 text-center w-full step-content-transition">
+            <div class="flex items-center justify-center gap-2 mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[#4079ff]">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <h2 class="text-2xl font-bold mb-3 text-white">输入卡密</h2>
+            </div>
+            <p class="text-gray-300 mb-6">购买后会自动返回一个12位的卡密</p>
+            
+            <input
+              v-model="key"
+              @input="validateKey"
+              @blur="validateKey"
+              class="mt-3 px-4 py-3 border border-gray-700 rounded-lg w-full max-w-[300px] bg-gray-900/50 text-white focus:outline-none focus:border-[#1246A4] focus:ring-2 focus:ring-[#1246A4]/30 transition-all duration-300 hover:border-gray-500"
+              placeholder="A1B2C3D4E5F6"
+            />
 
-    <div class="mt-1 flex justify-center">
-      <a
-        href="https://afdian.com/item/751c4cb48ffa11f08f9f5254001e7c00"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <GradientText
-          text="还未购买？点我购买，限时特价"
-          :colors="['#40ffaa', '#4079ff','#40ffaa', '#4079ff', '#40ffaa']"
-          :animation-speed="5"
-          :show-border="false"
-          class-name="
-            w-full max-w-[300px]
-            px-4 py-3
-            rounded-lg
-            bg-black/5
-            text-center
-          "
-        />
-      </a>
-    </div>
+            <div class="mt-4 flex justify-center">
+              <a
+                href="https://afdian.com/item/751c4cb48ffa11f08f9f5254001e7c00"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <GradientText
+                  text="还未购买？点我购买，限时特价"
+                  :colors="['#40ffaa', '#4079ff','#40ffaa', '#4079ff', '#40ffaa']"
+                  :animation-speed="5"
+                  :show-border="false"
+                  class-name="
+                    w-full max-w-[300px]
+                    px-4 py-3
+                    rounded-lg
+                    bg-black/5
+                    text-center
+                    hover:bg-black/20
+                    transition-all duration-300
+                    cursor-pointer
+                  "
+                />
+              </a>
+            </div>
 
-    <p v-if="keyError" class="text-red-500 text-sm mt-1 mb-2">{{ keyError }}</p>
-  </div>
+            <p v-if="keyError" class="text-red-400 text-sm mt-2 mb-2 animate-fade-in">{{ keyError }}</p>
+          </div>
 
-          <div class="p-6 text-center w-full">
-            <h2 class="text-2xl font-bold mb-4 text-white">输入设备ID</h2>
-            <p class="text-gray-200 mb-4">手环上的二维码扫描出来的数据</p>
+          <!-- 步骤2：输入设备ID -->
+          <div class="p-6 text-center w-full step-content-transition">
+            <div class="flex items-center justify-center gap-2 mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[#4079ff]">
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="2" x2="9" y2="4"></line>
+                <line x1="15" y1="2" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="22"></line>
+                <line x1="15" y1="20" x2="15" y2="22"></line>
+                <line x1="20" y1="9" x2="22" y2="9"></line>
+                <line x1="20" y1="14" x2="22" y2="14"></line>
+                <line x1="2" y1="9" x2="4" y2="9"></line>
+                <line x1="2" y1="14" x2="4" y2="14"></line>
+              </svg>
+              <h2 class="text-2xl font-bold mb-4 text-white">输入设备ID</h2>
+            </div>
+            <p class="text-gray-300 mb-6">手环上的二维码扫描出来的数据</p>
             <input
               v-model="deviceId"
-              class="mt-4 px-4 py-3 border border-gray-300 rounded-lg w-full max-w-[300px] bg-black/10 text-white focus:outline-none focus:border-[#1246A4] focus:ring-2 focus:ring-[#1246A4]/30"
+              @input="validateDeviceId"
+              @blur="validateDeviceId"
+              class="mt-4 px-4 py-3 border border-gray-700 rounded-lg w-full max-w-[300px] bg-gray-900/50 text-white focus:outline-none focus:border-[#1246A4] focus:ring-2 focus:ring-[#1246A4]/30 transition-all duration-300 hover:border-gray-500"
               placeholder="32位的16进制数据"
             />
-            <p v-if="deviceIdError" class="text-red-500 text-sm mt-2">{{ deviceIdError }}</p>
+            <p v-if="deviceIdError" class="text-red-400 text-sm mt-2 animate-fade-in">{{ deviceIdError }}</p>
           </div>
 
-          <div class="py-4 px-6 text-center w-full">
-            <h2 class="text-2xl font-bold mb-4 text-white">确认你的数据无误</h2>
-            <p class="text-gray-200 mb-4">请使用你要激活的设备的二维码</p>
-            <p class="text-gray-200 mb-4">如果你因为填错数据导致激活失败</p>
-            <p class="text-gray-200 mb-4">本产品概不负责，你需要重新购买</p>
+          <!-- 步骤3：确认数据 -->
+          <div class="py-4 px-6 text-center w-full step-content-transition">
+            <div class="flex items-center justify-center gap-2 mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[#40ffaa]">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <h2 class="text-2xl font-bold mb-4 text-white">确认你的数据无误</h2>
+            </div>
+            
+            <div class="bg-gray-900/30 rounded-lg p-4 max-w-md mx-auto mb-6 border border-gray-800">
+              <p class="text-gray-300 mb-3"><span class="text-gray-400">卡密：</span>{{ key || '未输入' }}</p>
+              <p class="text-gray-300"><span class="text-gray-400">设备ID：</span>{{ deviceId || '未输入' }}</p>
+            </div>
+            
+            <p class="text-gray-300 mb-2">请使用你要激活的设备的二维码</p>
+            <p class="text-gray-300 mb-2">如果你因为填错数据导致激活失败</p>
+            <p class="text-gray-300 mb-2">本产品概不负责，你需要重新购买</p>
           </div>
 
-          <div class="p-6 text-center w-full">
-            <h2 class="text-2xl font-bold mb-4 text-white">你的激活数据</h2>
-            <p class="text-gray-200 mb-4">复制数据后前往AstroBox使用插件激活</p>
-            <p class="text-gray-200 mb-4">操作教程会在购买后在爱发电私信给你</p>
-            <div class="mt-4 flex items-center justify-center gap-2 max-w-md mx-auto">
+          <!-- 步骤4：激活数据 -->
+          <div class="p-6 text-center w-full step-content-transition">
+            <div class="flex items-center justify-center gap-2 mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[#40ffaa]">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                <path d="M9 14l2 2 4-4"></path>
+              </svg>
+              <h2 class="text-2xl font-bold mb-4 text-white">你的激活数据</h2>
+            </div>
+            <p class="text-gray-300 mb-2">复制数据后前往AstroBox使用插件激活</p>
+            <p class="text-gray-300 mb-6">操作教程会在购买后在爱发电私信给你</p>
+            
+            <div class="mt-4 flex items-center justify-center gap-2 max-w-md mx-auto bg-gray-900/30 rounded-lg p-2 border border-gray-800">
               <input
                 v-model="activationData"
-                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-black/30 text-white cursor-not-allowed text-center min-w-0"
+                class="flex-1 px-4 py-3 border border-gray-700 rounded-lg bg-gray-900/50 text-white cursor-not-allowed text-center min-w-0"
                 readonly
                 style="height: 40px; box-sizing: border-box;"
               />
 
               <button
                 @click="copyActivationData"
-                class="w-10 h-10 border border-gray-300 rounded-lg bg-black/30 text-white hover:bg-black/40 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-[#1246A4]/50 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-10 h-10 border border-gray-700 rounded-lg bg-gray-900/50 text-white hover:bg-[#1246A4] hover:border-[#1246A4] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#1246A4]/50 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="!activationData"
                 aria-label="复制激活数据"
                 style="box-sizing: border-box;"
@@ -126,13 +178,17 @@
 
             <!-- 复制成功提示 -->
             <div 
-              class="overflow-hidden transition-[max-height] duration-300 ease-out"
+              class="overflow-hidden transition-all duration-300 ease-out"
               :style="{
                 maxHeight: copySuccess ? '1.5rem' : '0',
-                marginTop: copySuccess ? '0.5rem' : '0'
+                marginTop: copySuccess ? '0.5rem' : '0',
+                opacity: copySuccess ? 1 : 0
               }"
             >
-              <p class="text-green-400 text-sm leading-none">
+              <p class="text-green-400 text-sm leading-none flex items-center justify-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
                 已复制！
               </p>
             </div>
@@ -151,9 +207,23 @@
             </p>
           </div>
 
-          <div class="py-4 px-6 text-center w-full">
+          <!-- 步骤5：完成页面 -->
+          <div class="py-4 px-6 text-center w-full step-content-transition">
+            <div class="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#40ffaa] to-[#4079ff] text-black">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            
             <h2 class="text-2xl font-bold mb-4 text-white">老乡！来钓鱼</h2>
-            <p class="text-gray-200 mb-4">你可以加Q群，群号在自动回复里</p>
+            <p class="text-gray-300 mb-6">你可以加Q群，群号在自动回复里</p>
+            
+            <button 
+              @click="resetStepper"
+              class="px-6 py-2.5 bg-gradient-to-r from-[#1246A4] to-[#1E5BC8] text-white rounded-lg hover:opacity-90 transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#1246A4]/50"
+            >
+              重新激活
+            </button>
           </div>
         </Stepper>
       </div>
@@ -162,7 +232,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, inject } from 'vue';
 import DotGrid from './components/DotGrid.vue';
 import Stepper from './components/Stepper.vue';
 import GradientText from "./components/GradientText.vue";
@@ -173,7 +243,7 @@ const activationData = ref('');
 const keyError = ref('');
 const deviceIdError = ref('');
 
-// ✅ 新增：用于存储第一步计算出的卡密哈希值
+// 存储第一步计算出的卡密哈希值
 const cardHash = ref<string>('');
 
 const currentStep = ref(1);
@@ -181,7 +251,7 @@ const copySuccess = ref(false);
 const showCopyRequiredHint = ref(false);
 const isProcessing = ref(false); // 防止重复提交
 
-// ✅ 新增：设备失败计数器和锁定状态（基于 deviceId）
+// 设备失败计数器和锁定状态（基于 deviceId）
 interface DeviceLockState {
   failCount: number;       // 失败次数（仅对无效卡密累加）
   lockedUntil: number | null; // 锁定结束时间戳（毫秒）
@@ -256,7 +326,7 @@ const formatTimeRemaining = (remainingMs: number): string => {
   }
 };
 
-// ✅ 倒计时状态管理
+// 倒计时状态管理
 const countdownTimer = ref<number | null>(null); // 定时器句柄
 const remainingTime = ref<number>(0); // 当前剩余时间（毫秒），用于动态更新
 
@@ -273,7 +343,6 @@ const updateCountdown = () => {
       if (!countdownTimer.value) {
         countdownTimer.value = window.setInterval(() => {
           const now = Date.now();
-          // 修复：添加对 state.lockedUntil 可能为 null 的检查
           if (state.lockedUntil !== null) {
             const remaining = state.lockedUntil - now;
             if (remaining <= 0) {
@@ -314,13 +383,13 @@ const updateCountdown = () => {
   }
 };
 
-// ✅ 响应式倒计时文本（根据 remainingTime 动态生成）
+// 响应式倒计时文本（根据 remainingTime 动态生成）
 const dynamicCountdownText = computed(() => {
   if (remainingTime.value <= 0) return '';
   return formatTimeRemaining(remainingTime.value);
 });
 
-// ✅ 计算当前步骤的锁定提示（动态倒计时 + 静态提示）
+// 计算当前步骤的锁定提示（动态倒计时 + 静态提示）
 const getLockErrorMessage = (step: 1 | 2): string => {
   const state = getDeviceLockState();
   if (state.lockedUntil === null) return '';
@@ -337,6 +406,7 @@ const getLockErrorMessage = (step: 1 | 2): string => {
 const verifyCard = async (cardText: string, cardHashValue: string): Promise<boolean> => {
   try {
     isProcessing.value = true;
+    // 显示加载动画
     const res = await fetch('https://verify.cheongszesuen.workers.dev/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -350,7 +420,7 @@ const verifyCard = async (cardText: string, cardHashValue: string): Promise<bool
     const data = await res.json();
 
     if (res.ok && data.success) {
-      // ✅ 成功：重置设备状态
+      // 成功：重置设备状态
       const state = getDeviceLockState();
       state.failCount = 0;
       state.lockedUntil = null;
@@ -359,7 +429,7 @@ const verifyCard = async (cardText: string, cardHashValue: string): Promise<bool
       return true;
     }
 
-    // ❌ 失败：处理不同错误类型
+    // 失败：处理不同错误类型
     if (data.code === 403 && data.isCardInvalid) {
       // 卡密无效：指数退避锁定
       const state = getDeviceLockState();
@@ -433,38 +503,38 @@ const requestSignature = async (cardText: string, deviceIdValue: string): Promis
 
 // 下一步按钮样式类（增强第4步逻辑）
 const nextButtonClass = computed(() => {
-  let baseClass = 'border-none transition-all duration-[350ms] flex items-center justify-center rounded-full font-medium tracking-tight px-3.5 py-1.5 ';
+  let baseClass = 'border-none transition-all duration-350 flex items-center justify-center rounded-full font-medium tracking-tight px-6 py-2.5 transform hover:scale-105 active:scale-95 ';
 
   if (currentStep.value === 1) {
     const state = getDeviceLockState();
     const isLocked = state.lockedUntil !== null && Date.now() < state.lockedUntil;
 
     if (!key.value || isProcessing.value || isLocked) {
-      baseClass += 'bg-gray-400 text-gray-200 cursor-not-allowed';
+      baseClass += 'bg-gray-700 text-gray-300 cursor-not-allowed';
     } else {
       baseClass += validateKey()
-        ? 'bg-[#1246A4] text-white hover:bg-[#113671] cursor-pointer'
-        : 'bg-gray-400 text-gray-200 cursor-not-allowed';
+        ? 'bg-gradient-to-r from-[#1246A4] to-[#1E5BC8] text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#1246A4]/50 cursor-pointer'
+        : 'bg-gray-700 text-gray-300 cursor-not-allowed';
     }
   } else if (currentStep.value === 2) {
     const state = getDeviceLockState();
     const isLocked = state.lockedUntil !== null && Date.now() < state.lockedUntil;
 
     if (!deviceId.value || isProcessing.value || isLocked) {
-      baseClass += 'bg-gray-400 text-gray-200 cursor-not-allowed';
+      baseClass += 'bg-gray-700 text-gray-300 cursor-not-allowed';
     } else {
       baseClass += validateDeviceId()
-        ? 'bg-[#1246A4] text-white hover:bg-[#113671] cursor-pointer'
-        : 'bg-gray-400 text-gray-200 cursor-not-allowed';
+        ? 'bg-gradient-to-r from-[#1246A4] to-[#1E5BC8] text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#1246A4]/50 cursor-pointer'
+        : 'bg-gray-700 text-gray-300 cursor-not-allowed';
     }
   } else if (currentStep.value === 4) {
     if (!copySuccess.value) {
-      baseClass += 'bg-gray-400 text-gray-200 cursor-not-allowed';
+      baseClass += 'bg-gray-700 text-gray-300 cursor-not-allowed';
     } else {
-      baseClass += 'bg-[#1246A4] text-white hover:bg-[#113671] cursor-pointer';
+      baseClass += 'bg-gradient-to-r from-[#1246A4] to-[#1E5BC8] text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#1246A4]/50 cursor-pointer';
     }
   } else {
-    baseClass += 'bg-[#1246A4] text-white hover:bg-[#113671] cursor-pointer';
+    baseClass += 'bg-gradient-to-r from-[#1246A4] to-[#1E5BC8] text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#1246A4]/50 cursor-pointer';
   }
 
   return baseClass;
@@ -472,6 +542,15 @@ const nextButtonClass = computed(() => {
 
 // 步骤切换时清空错误 & 停止倒计时
 const handleStepChange = (step: number) => {
+  // 添加步骤切换动画类
+  const stepContents = document.querySelectorAll('.step-content-transition');
+  stepContents.forEach(el => {
+    el.classList.add('step-transition-out');
+    setTimeout(() => {
+      el.classList.remove('step-transition-out');
+    }, 300);
+  });
+  
   currentStep.value = step;
   console.log('Step changed to:', step);
 
@@ -482,12 +561,25 @@ const handleStepChange = (step: number) => {
     showCopyRequiredHint.value = false;
   }
 
-  // ✅ 切换步骤时强制停止倒计时
+  // 切换步骤时强制停止倒计时
   if (countdownTimer.value) {
     clearInterval(countdownTimer.value);
     countdownTimer.value = null;
   }
   remainingTime.value = 0;
+};
+
+// 处理下一步按钮点击（仅用于动画反馈）
+const handleNextButtonClick = () => {
+  if (isProcessing.value) return;
+  
+  const nextButton = document.querySelector('.next-button');
+  if (nextButton) {
+    nextButton.classList.add('button-press');
+    setTimeout(() => {
+      nextButton.classList.remove('button-press');
+    }, 200);
+  }
 };
 
 const handleNextClick = async (step: number): Promise<boolean> => {
@@ -496,7 +588,7 @@ const handleNextClick = async (step: number): Promise<boolean> => {
     const isLocked = state.lockedUntil !== null && Date.now() < state.lockedUntil;
 
     if (isLocked) {
-      // ✅ 显示动态倒计时
+      // 显示动态倒计时
       keyError.value = getLockErrorMessage(1);
       return false;
     }
@@ -507,7 +599,7 @@ const handleNextClick = async (step: number): Promise<boolean> => {
     }
     if (!validateKey()) return false;
 
-    const calculatedHash = await calculateCardHash(key.value); // ✅ 现在函数存在，不会报错！
+    const calculatedHash = await calculateCardHash(key.value);
     cardHash.value = calculatedHash;
     const success = await verifyCard(key.value, calculatedHash);
 
@@ -562,14 +654,21 @@ const handleFinalStepCompleted = () => {
   console.log('Stepper completed!');
 };
 
-// // 开发环境自动填充测试数据
-// if (import.meta.env.DEV) {
-//   key.value = 'A1B2C3D4E5F6';
-//   deviceId.value = 'd4cd0dabcf4caa22ad92fab40844c786';
-//   activationData.value = `${deviceId.value}:abc123...`; // 模拟签名
-//   currentStep.value = 3;
-//   console.log('✅ [DEV] 测试数据已自动填充：', activationData.value);
-// }
+// 重置步骤器
+const resetStepper = () => {
+  // 假设Stepper组件有一个重置方法，通过inject获取
+  const stepperReset = inject<() => void>('stepperReset');
+  if (stepperReset) {
+    stepperReset();
+  }
+  
+  // 重置表单数据
+  key.value = '';
+  deviceId.value = '';
+  activationData.value = '';
+  currentStep.value = 1;
+  copySuccess.value = false;
+};
 
 // 在组件挂载时检查URL参数
 onMounted(() => {
@@ -599,6 +698,16 @@ const copyActivationData = async () => {
     await navigator.clipboard.writeText(activationData.value);
     copySuccess.value = true;
     showCopyRequiredHint.value = false;
+    
+    // 复制成功动画反馈
+    const copyButton = document.querySelector('[aria-label="复制激活数据"]');
+    if (copyButton) {
+      copyButton.classList.add('copy-success');
+      setTimeout(() => {
+        copyButton.classList.remove('copy-success');
+      }, 1000);
+    }
+    
     setTimeout(() => {
       copySuccess.value = false;
     }, 3000);
@@ -651,6 +760,7 @@ html, body, #app {
   padding: 0;
   width: 100%;
   height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 .app-container {
@@ -659,10 +769,52 @@ html, body, #app {
   position: relative;
 }
 
-div, span, button {
-  color: blue;
+/* 步骤内容过渡动画 */
+.step-content-transition {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 1;
+  transform: translateY(0);
 }
 
+.step-transition-out {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* 按钮动画效果 */
+.button-press {
+  transform: scale(0.95) !important;
+  box-shadow: 0 0 0 3px rgba(18, 70, 164, 0.2) !important;
+}
+
+/* 复制按钮成功效果 */
+.copy-success {
+  background-color: #10b981 !important;
+  border-color: #10b981 !important;
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-5px); }
+  20% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-5px); }
+}
+
+.animate-fade-in-out {
+  animation: fadeInOut 1.2s ease-out infinite;
+}
+
+/* 响应式调整 */
 @media (max-width: 768px) {
   .stepper-wrapper {
     width: 95%;
@@ -681,25 +833,9 @@ div, span, button {
   .step-content {
     padding: 1rem;
   }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.6s ease-out;
-}
-
-@keyframes fadeInOut {
-  0% { opacity: 0; transform: translateY(-5px); }
-  20% { opacity: 1; transform: translateY(0); }
-  80% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-5px); }
-}
-
-.animate-fade-in-out {
-  animation: fadeInOut 1.2s ease-out;
+  
+  h2.text-2xl {
+    font-size: 1.5rem;
+  }
 }
 </style>
