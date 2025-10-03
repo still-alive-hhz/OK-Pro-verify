@@ -1,0 +1,52 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 移除所有限制全屏的样式 */
+#app {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+/* 确保html和body也是全屏 */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+/* 移除媒体查询中的居中限制 */
+@media (min-width: 1024px) {
+  body {
+    display: block; /* 从flex改为block */
+  }
+
+  #app {
+    display: block; /* 从grid改为block */
+    grid-template-columns: none;
+    padding: 0;
+  }
+}
+a:hover {
+  background-color: transparent !important;
+}
