@@ -17,7 +17,7 @@
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
       </div>
-      <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">小米手环激活工具</h1>
+      <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Still Alive软件激活工具</h1>
       <p class="mt-2 text-slate-400 max-w-md mx-auto">快速激活你的设备，享受完整功能体验</p>
     </header>
 
@@ -81,7 +81,7 @@
               </div>
               
               <a
-                href="https://afdian.com/item/751c4cb48ffa11f08f9f5254001e7c00"
+                href="https://afdian.com/item/521b2056a07011f087c55254001e7c00"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="block w-full text-center"
@@ -289,7 +289,7 @@
       
       <!-- 页脚信息 -->
       <div class="mt-8 text-center text-xs text-slate-500">
-        <p>© 2023 小米手环工具 | 本工具非官方产品，仅供学习交流</p>
+        <p>© 2025 Still Alive工具 | 本工具非官方产品，仅供学习交流</p>
       </div>
     </main>
   </div>
