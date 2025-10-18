@@ -129,8 +129,8 @@
                 class="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-50 cursor-not-allowed"
                 readonly
               />
-              <button @click="copyActivationData" class="px-3 py-3 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 hover:bg-slate-700 transition-colors" :disabled="!activationData">
-                复制
+              <button @click="copyActivationData" class="px-3 py-3 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 hover:bg-slate-700 transition-colors" :disabled="!activationData || copySuccess">
+                {{ copySuccess ? '已复制' : '复制' }}
               </button>
             </div>
             <p v-if="showCopyRequiredHint" class="text-red-400 text-sm animate-fade-in-out">请先复制激活数据才能进行下一步</p>
@@ -179,7 +179,11 @@ const isProcessing = ref(false);
 const copySuccess = ref(false);
 const showCopyRequiredHint = ref(false);
 
-function getDeviceLockState() {
+interface DeviceLockState {
+  lockedUntil: number | null;
+}
+
+function getDeviceLockState(): DeviceLockState {
   return { lockedUntil: null };
 }
 
@@ -203,42 +207,66 @@ const isNextDisabled = computed(() => {
 });
 
 // 异步模拟
-async function calculateCardHash(key: string) { return new Promise<string>(r => setTimeout(() => r('hash_'+key),500)); }
-async function verifyCard(key: string, hash: string) { return new Promise<boolean>(r => setTimeout(() => r(true),500)); }
-async function requestSignature(key: string, deviceId: string) { return new Promise<{data:string}>(r => setTimeout(() => r({data:'activation_'+key+'_'+deviceId}),500)); }
-
-function animateStepChange(){}
-
-function copyActivationData(){
-  if(!activationData.value) return;
-  navigator.clipboard.writeText(activationData.value);
-  copySuccess.value = true;
-  setTimeout(()=>copySuccess.value=false,2000);
+async function calculateCardHash(key: string): Promise<string> { 
+  return new Promise<string>(r => setTimeout(() => r('hash_'+key), 500)); 
+}
+async function verifyCard(key: string, hash: string): Promise<boolean> { 
+  return new Promise<boolean>(r => setTimeout(() => r(true), 500)); 
+}
+async function requestSignature(key: string, deviceId: string): Promise<{data:string}> { 
+  return new Promise<{data:string}>(r => setTimeout(() => r({data:'activation_'+key+'_'+deviceId}), 500)); 
 }
 
-async function nextStep(){
+function animateStepChange() {
+  const stepContents = document.querySelectorAll('.step-content');
+  stepContents.forEach(content => {
+    content.style.opacity = '0';
+    content.style.transform = 'translateY(10px)';
+    content.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    setTimeout(() => {
+      content.style.opacity = '1';
+      content.style.transform = 'translateY(0)';
+    }, 50);
+  });
+}
+
+async function copyActivationData() {
+  if(!activationData.value) return;
+  try {
+    await navigator.clipboard.writeText(activationData.value);
+    copySuccess.value = true;
+    setTimeout(() => copySuccess.value = false, 2000);
+  } catch (err) {
+    console.error('复制失败:', err);
+  }
+}
+
+async function nextStep() {
   if(isNextDisabled.value) return;
-  try{
+  try {
     isProcessing.value = true;
-    if(currentStep.value===1){
+    if(currentStep.value === 1) {
       const hash = await calculateCardHash(key.value);
-      const ok = await verifyCard(key.value,hash);
+      const ok = await verifyCard(key.value, hash);
       if(!ok) return;
-    } else if(currentStep.value===2){
-      const res = await requestSignature(key.value,deviceId.value);
+    } else if(currentStep.value === 2) {
+      const res = await requestSignature(key.value, deviceId.value);
       if(!res) return;
       activationData.value = res.data;
-    } else if(currentStep.value===4 && !copySuccess.value){
+    } else if(currentStep.value === 4 && !copySuccess.value) {
       showCopyRequiredHint.value = true;
-      setTimeout(()=>showCopyRequiredHint.value=false,2000);
+      setTimeout(() => showCopyRequiredHint.value = false, 2000);
       return;
     }
-    if(currentStep.value<5){
+    if(currentStep.value < 5) {
       currentStep.value++;
       animateStepChange();
     }
-  } catch(e){console.error(e);} 
-  finally{isProcessing.value=false;}
+  } catch(e) {
+    console.error(e);
+  } finally {
+    isProcessing.value = false;
+  }
 }
 </script>
 
