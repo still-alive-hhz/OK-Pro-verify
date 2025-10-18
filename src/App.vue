@@ -196,7 +196,7 @@ function validateDeviceId() {
 }
 
 // 下一步按钮状态
-const isNextDisabled = computed(() => {
+const isNextDisabled = computed<boolean>(() => {
   if (isProcessing.value) return true;
   const state = getDeviceLockState();
   const locked = state.lockedUntil && Date.now() < state.lockedUntil;
@@ -218,15 +218,18 @@ async function requestSignature(key: string, deviceId: string): Promise<{data:st
 }
 
 function animateStepChange() {
-  const stepContents = document.querySelectorAll('.step-content');
+  // 类型断言为HTMLElement以访问style属性
+  const stepContents = document.querySelectorAll<HTMLElement>('.step-content');
   stepContents.forEach(content => {
-    content.style.opacity = '0';
-    content.style.transform = 'translateY(10px)';
-    content.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-    setTimeout(() => {
-      content.style.opacity = '1';
-      content.style.transform = 'translateY(0)';
-    }, 50);
+    if (content) { // 确保元素存在
+      content.style.opacity = '0';
+      content.style.transform = 'translateY(10px)';
+      content.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      setTimeout(() => {
+        content.style.opacity = '1';
+        content.style.transform = 'translateY(0)';
+      }, 50);
+    }
   });
 }
 
