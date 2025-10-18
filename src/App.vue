@@ -298,6 +298,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 
+// 环境变量类型声明
+declare global {
+  interface ImportMetaEnv {
+    readonly MODE: string;
+    // 可以添加其他环境变量声明
+  }
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
+  }
+}
+
 const key = ref('');
 const deviceId = ref('');
 const activationData = ref('');
@@ -369,7 +380,7 @@ const calculateCardHash = async (text: string): Promise<string> => {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   } catch (error) {
     console.error('Error calculating card hash:', error);
-    throw error; // 确保错误被捕获
+    throw error;
   }
 };
 
@@ -458,11 +469,9 @@ const getLockErrorMessage = (step: 1 | 2): string => {
 // 验证卡密
 const verifyCard = async (cardText: string, cardHashValue: string): Promise<boolean> => {
   try {
-    // 仅在开发环境提供模拟验证，生产环境使用实际API
-    if (import.meta.env.DEV) {
-      // 模拟API调用延迟
+    // 开发环境模拟验证
+    if (import.meta.env.MODE === 'development') {
       await new Promise(resolve => setTimeout(resolve, 800));
-      // 模拟成功验证
       return true;
     }
     
@@ -520,11 +529,9 @@ const verifyCard = async (cardText: string, cardHashValue: string): Promise<bool
 // 请求签名
 const requestSignature = async (cardText: string, deviceIdValue: string): Promise<string | null> => {
   try {
-    // 仅在开发环境提供模拟签名，生产环境使用实际API
-    if (import.meta.env.DEV) {
-      // 模拟API调用延迟
+    // 开发环境模拟签名
+    if (import.meta.env.MODE === 'development') {
       await new Promise(resolve => setTimeout(resolve, 800));
-      // 模拟生成签名
       return `mock_signature_${cardText}_${deviceIdValue}`;
     }
     
@@ -557,7 +564,7 @@ const requestSignature = async (cardText: string, deviceIdValue: string): Promis
 };
 
 // 下一步按钮是否禁用
-const isNextDisabled = computed(() => {
+const isNextDisabled = computed<boolean>(() => {
   if (isProcessing.value) return true;
 
   if (currentStep.value === 1) {
@@ -643,7 +650,6 @@ const nextStep = async () => {
     }
   } catch (error) {
     console.error('Error in nextStep:', error);
-    // 显示通用错误信息
     if (currentStep.value === 1) {
       keyError.value = '处理卡密时出错，请重试';
     } else if (currentStep.value === 2) {
@@ -689,7 +695,6 @@ const copyActivationData = async () => {
     copySuccess.value = true;
     showCopyRequiredHint.value = false;
     
-    // 复制按钮动画反馈
     const copyButton = document.querySelector<HTMLElement>('[aria-label="复制激活数据"]');
     if (copyButton) {
       copyButton.classList.add('bg-emerald-500/20', 'border-emerald-500/50');
@@ -708,7 +713,7 @@ const copyActivationData = async () => {
 };
 
 // 验证卡密格式
-const validateKey = () => {
+const validateKey = (): boolean => {
   const keyRegex = /^[A-Z0-9]{12}$/;
   if (!key.value) {
     keyError.value = '请输入卡密';
@@ -723,7 +728,7 @@ const validateKey = () => {
 };
 
 // 验证设备ID格式
-const validateDeviceId = () => {
+const validateDeviceId = (): boolean => {
   const deviceIdRegex = /^[A-Fa-f0-9]{32}$/;
   if (!deviceId.value) {
     deviceIdError.value = '请输入设备ID';
@@ -753,7 +758,7 @@ onMounted(() => {
   loadDeviceLockState();
   updateCountdown();
   
-  // 初始化步骤内容动画类
+  // 初始化步骤内容动画样式
   const style = document.createElement('style');
   style.textContent = `
     .step-content {
