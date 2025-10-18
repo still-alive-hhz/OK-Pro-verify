@@ -195,36 +195,48 @@ function validateDeviceId() {
   deviceIdError.value = deviceId.value.match(/^[A-Fa-f0-9]{32}$/) ? '' : '设备ID格式错误，应为32位16进制';
 }
 
-// 下一步按钮状态
+// 下一步按钮状态 - 明确返回boolean类型
 const isNextDisabled = computed<boolean>(() => {
   if (isProcessing.value) return true;
+  
   const state = getDeviceLockState();
-  const locked = state.lockedUntil && Date.now() < state.lockedUntil;
-  if (currentStep.value === 1) return !key.value || keyError.value || locked;
-  if (currentStep.value === 2) return !deviceId.value || deviceIdError.value || locked;
-  if (currentStep.value === 4) return !copySuccess.value;
-  return false;
+  // 明确锁定状态为boolean类型
+  const locked: boolean = state.lockedUntil !== null && Date.now() < state.lockedUntil;
+
+  switch (currentStep.value) {
+    case 1:
+      return !key.value || !!keyError.value || locked;
+    case 2:
+      return !deviceId.value || !!deviceIdError.value || locked;
+    case 4:
+      return !copySuccess.value;
+    default:
+      return false;
+  }
 });
 
 // 异步模拟
 async function calculateCardHash(key: string): Promise<string> { 
-  return new Promise<string>(r => setTimeout(() => r('hash_'+key), 500)); 
+  return new Promise<string>(r => setTimeout(() => r('hash_' + key), 500)); 
 }
 async function verifyCard(key: string, hash: string): Promise<boolean> { 
   return new Promise<boolean>(r => setTimeout(() => r(true), 500)); 
 }
-async function requestSignature(key: string, deviceId: string): Promise<{data:string}> { 
-  return new Promise<{data:string}>(r => setTimeout(() => r({data:'activation_'+key+'_'+deviceId}), 500)); 
+async function requestSignature(key: string, deviceId: string): Promise<{data: string}> { 
+  return new Promise<{data: string}>(r => setTimeout(() => r({
+    data: 'activation_' + key + '_' + deviceId
+  }), 500)); 
 }
 
 function animateStepChange() {
-  // 类型断言为HTMLElement以访问style属性
+  // 明确类型为HTMLElement以支持style属性
   const stepContents = document.querySelectorAll<HTMLElement>('.step-content');
   stepContents.forEach(content => {
     if (content) { // 确保元素存在
       content.style.opacity = '0';
       content.style.transform = 'translateY(10px)';
       content.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      
       setTimeout(() => {
         content.style.opacity = '1';
         content.style.transform = 'translateY(0)';
@@ -234,7 +246,7 @@ function animateStepChange() {
 }
 
 async function copyActivationData() {
-  if(!activationData.value) return;
+  if (!activationData.value) return;
   try {
     await navigator.clipboard.writeText(activationData.value);
     copySuccess.value = true;
@@ -245,28 +257,39 @@ async function copyActivationData() {
 }
 
 async function nextStep() {
-  if(isNextDisabled.value) return;
+  if (isNextDisabled.value) return;
+  
   try {
     isProcessing.value = true;
-    if(currentStep.value === 1) {
-      const hash = await calculateCardHash(key.value);
-      const ok = await verifyCard(key.value, hash);
-      if(!ok) return;
-    } else if(currentStep.value === 2) {
-      const res = await requestSignature(key.value, deviceId.value);
-      if(!res) return;
-      activationData.value = res.data;
-    } else if(currentStep.value === 4 && !copySuccess.value) {
-      showCopyRequiredHint.value = true;
-      setTimeout(() => showCopyRequiredHint.value = false, 2000);
-      return;
+    
+    switch (currentStep.value) {
+      case 1: {
+        const hash = await calculateCardHash(key.value);
+        const isValid = await verifyCard(key.value, hash);
+        if (!isValid) return;
+        break;
+      }
+      case 2: {
+        const res = await requestSignature(key.value, deviceId.value);
+        activationData.value = res.data;
+        break;
+      }
+      case 4: {
+        if (!copySuccess.value) {
+          showCopyRequiredHint.value = true;
+          setTimeout(() => showCopyRequiredHint.value = false, 2000);
+          return;
+        }
+        break;
+      }
     }
-    if(currentStep.value < 5) {
+
+    if (currentStep.value < 5) {
       currentStep.value++;
       animateStepChange();
     }
-  } catch(e) {
-    console.error(e);
+  } catch (e) {
+    console.error('操作失败:', e);
   } finally {
     isProcessing.value = false;
   }
@@ -274,8 +297,21 @@ async function nextStep() {
 </script>
 
 <style scoped>
-@keyframes fade-in{from{opacity:0}to{opacity:1}}
-.animate-fade-in{animation:fade-in .3s ease-out forwards}
-@keyframes fade-in-out{0%{opacity:0}10%{opacity:1}90%{opacity:1}100%{opacity:0}}
-.animate-fade-in-out{animation:fade-in-out 2s ease-out forwards}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+@keyframes fade-in-out {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.animate-fade-in-out {
+  animation: fade-in-out 2s ease-out forwards;
+}
 </style>
