@@ -298,17 +298,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 
-// 环境变量类型声明
-declare global {
-  interface ImportMetaEnv {
-    readonly MODE: string;
-    // 可以添加其他环境变量声明
-  }
-  interface ImportMeta {
-    readonly env: ImportMetaEnv;
-  }
-}
-
 const key = ref('');
 const deviceId = ref('');
 const activationData = ref('');
@@ -372,16 +361,11 @@ const getDeviceLockState = (): DeviceLockState => {
 
 // 计算卡密哈希
 const calculateCardHash = async (text: string): Promise<string> => {
-  try {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(text);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  } catch (error) {
-    console.error('Error calculating card hash:', error);
-    throw error;
-  }
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
 // 格式化剩余时间
@@ -469,12 +453,7 @@ const getLockErrorMessage = (step: 1 | 2): string => {
 // 验证卡密
 const verifyCard = async (cardText: string, cardHashValue: string): Promise<boolean> => {
   try {
-    // 开发环境模拟验证
-    if (import.meta.env.MODE === 'development') {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      return true;
-    }
-    
+    isProcessing.value = true;
     const res = await fetch('https://ok-pro-verify.dangerous-hhz.workers.dev/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -523,18 +502,15 @@ const verifyCard = async (cardText: string, cardHashValue: string): Promise<bool
     keyError.value = '网络错误，请检查连接';
     console.error('Verify card error:', err);
     return false;
+  } finally {
+    isProcessing.value = false;
   }
 };
 
 // 请求签名
 const requestSignature = async (cardText: string, deviceIdValue: string): Promise<string | null> => {
   try {
-    // 开发环境模拟签名
-    if (import.meta.env.MODE === 'development') {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      return `mock_signature_${cardText}_${deviceIdValue}`;
-    }
-    
+    isProcessing.value = true;
     const res = await fetch('https://ok-pro-verify.dangerous-hhz.workers.dev/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -560,11 +536,13 @@ const requestSignature = async (cardText: string, deviceIdValue: string): Promis
     deviceIdError.value = '网络错误，请检查连接';
     console.error('Request signature error:', err);
     return null;
+  } finally {
+    isProcessing.value = false;
   }
 };
 
 // 下一步按钮是否禁用
-const isNextDisabled = computed<boolean>(() => {
+const isNextDisabled = computed(() => {
   if (isProcessing.value) return true;
 
   if (currentStep.value === 1) {
@@ -586,6 +564,7 @@ const isNextDisabled = computed<boolean>(() => {
 const prevStep = () => {
   if (currentStep.value > 1) {
     currentStep.value--;
+    // 添加步骤切换动画
     animateStepChange();
   }
 };
@@ -593,85 +572,69 @@ const prevStep = () => {
 const nextStep = async () => {
   if (isNextDisabled.value) return;
 
-  try {
-    isProcessing.value = true;
+  if (currentStep.value === 1) {
+    const state = getDeviceLockState();
+    const isLocked = state.lockedUntil !== null && Date.now() < state.lockedUntil;
+    
+    if (isLocked) {
+      keyError.value = getLockErrorMessage(1);
+      return;
+    }
 
-    if (currentStep.value === 1) {
+    if (!validateKey()) return;
+
+    const calculatedHash = await calculateCardHash(key.value);
+    cardHash.value = calculatedHash;
+    const success = await verifyCard(key.value, calculatedHash);
+
+    if (!success) {
       const state = getDeviceLockState();
-      const isLocked = state.lockedUntil !== null && Date.now() < state.lockedUntil;
-      
-      if (isLocked) {
+      if (state.lockedUntil !== null && Date.now() < state.lockedUntil) {
         keyError.value = getLockErrorMessage(1);
-        return;
       }
+      return;
+    }
+  } else if (currentStep.value === 2) {
+    const state = getDeviceLockState();
+    const isLocked = state.lockedUntil !== null && Date.now() < state.lockedUntil;
+    
+    if (isLocked) {
+      deviceIdError.value = getLockErrorMessage(2);
+      return;
+    }
 
-      if (!validateKey()) return;
+    if (!validateDeviceId()) return;
 
-      const calculatedHash = await calculateCardHash(key.value);
-      cardHash.value = calculatedHash;
-      const success = await verifyCard(key.value, calculatedHash);
-
-      if (!success) {
-        const state = getDeviceLockState();
-        if (state.lockedUntil !== null && Date.now() < state.lockedUntil) {
-          keyError.value = getLockErrorMessage(1);
-        }
-        return;
-      }
-    } else if (currentStep.value === 2) {
+    const resultPacket = await requestSignature(key.value, deviceId.value);
+    if (!resultPacket) {
       const state = getDeviceLockState();
-      const isLocked = state.lockedUntil !== null && Date.now() < state.lockedUntil;
-      
-      if (isLocked) {
+      if (state.lockedUntil !== null && Date.now() < state.lockedUntil) {
         deviceIdError.value = getLockErrorMessage(2);
-        return;
       }
-
-      if (!validateDeviceId()) return;
-
-      const resultPacket = await requestSignature(key.value, deviceId.value);
-      if (!resultPacket) {
-        const state = getDeviceLockState();
-        if (state.lockedUntil !== null && Date.now() < state.lockedUntil) {
-          deviceIdError.value = getLockErrorMessage(2);
-        }
-        return;
-      }
-    } else if (currentStep.value === 4) {
-      if (!copySuccess.value) {
-        showCopyRequiredHint.value = true;
-        return;
-      }
+      return;
     }
+  } else if (currentStep.value === 4) {
+    if (!copySuccess.value) {
+      showCopyRequiredHint.value = true;
+      return;
+    }
+  }
 
-    if (currentStep.value < 5) {
-      currentStep.value++;
-      animateStepChange();
-    }
-  } catch (error) {
-    console.error('Error in nextStep:', error);
-    if (currentStep.value === 1) {
-      keyError.value = '处理卡密时出错，请重试';
-    } else if (currentStep.value === 2) {
-      deviceIdError.value = '处理设备ID时出错，请重试';
-    }
-  } finally {
-    isProcessing.value = false;
+  if (currentStep.value < 5) {
+    currentStep.value++;
+    // 添加步骤切换动画
+    animateStepChange();
   }
 };
 
 // 步骤切换动画
 const animateStepChange = () => {
-  const stepContents = document.querySelectorAll<HTMLElement>('.step-content');
+  const stepContents = document.querySelectorAll('.step-content');
   stepContents.forEach(el => {
-    if (el) {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(10px)';
-      setTimeout(() => {
-        el.style.opacity = '1';
-        el.style.transform = 'translateY(0)';
-      }, 50);
-    }
+    el.classList.add('opacity-0', 'translate-y-4');
+    setTimeout(() => {
+      el.classList.remove('opacity-0', 'translate-y-4');
+    }, 200);
   });
 };
 
@@ -695,7 +658,8 @@ const copyActivationData = async () => {
     copySuccess.value = true;
     showCopyRequiredHint.value = false;
     
-    const copyButton = document.querySelector<HTMLElement>('[aria-label="复制激活数据"]');
+    // 复制按钮动画反馈
+    const copyButton = document.querySelector('[aria-label="复制激活数据"]');
     if (copyButton) {
       copyButton.classList.add('bg-emerald-500/20', 'border-emerald-500/50');
       setTimeout(() => {
@@ -713,7 +677,7 @@ const copyActivationData = async () => {
 };
 
 // 验证卡密格式
-const validateKey = (): boolean => {
+const validateKey = () => {
   const keyRegex = /^[A-Z0-9]{12}$/;
   if (!key.value) {
     keyError.value = '请输入卡密';
@@ -728,7 +692,7 @@ const validateKey = (): boolean => {
 };
 
 // 验证设备ID格式
-const validateDeviceId = (): boolean => {
+const validateDeviceId = () => {
   const deviceIdRegex = /^[A-Fa-f0-9]{32}$/;
   if (!deviceId.value) {
     deviceIdError.value = '请输入设备ID';
@@ -758,7 +722,7 @@ onMounted(() => {
   loadDeviceLockState();
   updateCountdown();
   
-  // 初始化步骤内容动画样式
+  // 初始化步骤内容动画类
   const style = document.createElement('style');
   style.textContent = `
     .step-content {
