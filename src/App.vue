@@ -486,9 +486,12 @@ const verifyCard = async (cardText: string, cardHashValue: string): Promise<bool
       return false;
     }
 
-    // 修改：卡密已使用时仅提示，不锁定
     if (data.code === 409 && data.isCardUsed) {
-      keyError.value = '该卡密已被使用过';
+      const state = getDeviceLockState();
+      state.lockedUntil = Date.now() + 30 * 1000;
+      keyError.value = '';
+      updateCountdown();
+      saveDeviceLockState();
       return false;
     }
 
