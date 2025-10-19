@@ -454,7 +454,7 @@ const getLockErrorMessage = (step: 1 | 2): string => {
 const verifyCard = async (cardText: string, cardHashValue: string): Promise<boolean> => {
   try {
     isProcessing.value = true;
-    const res = await fetch('https://ok-pro-verify.dangerous-hhz.workers.dev/', {
+    const res = await fetch('api.verify.stillalive.asia', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -511,7 +511,7 @@ const verifyCard = async (cardText: string, cardHashValue: string): Promise<bool
 const requestSignature = async (cardText: string, deviceIdValue: string): Promise<string | null> => {
   try {
     isProcessing.value = true;
-    const res = await fetch('https://ok-pro-verify.dangerous-hhz.workers.dev/', {
+    const res = await fetch('api.verify.stillalive.asia', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
