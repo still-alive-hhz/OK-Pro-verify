@@ -175,8 +175,6 @@ const verifyCard = async (cardText: string, hash: string) => {
       return false
     }
 
-    }
-
     keyError.value = data.error || '卡密验证失败'
     return false
   } catch {
