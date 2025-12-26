@@ -171,8 +171,10 @@ const verifyCard = async (cardText: string, hash: string) => {
       return true
     }
     if (data.isCardInvalid) {
-      keyError.value = '卡密无效'
+      keyError.value = '激活码不存在，请确认输入是否正确'
       return false
+    }
+
     }
 
     keyError.value = data.error || '卡密验证失败'
