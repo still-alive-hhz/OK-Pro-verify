@@ -193,4 +193,80 @@ const requestSignature = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        mode: 'gene
+        mode: 'generate-signature',
+        cardText: key.value,
+        deviceId: deviceId.value,
+        cardHash: cardHash.value,
+      }),
+    })
+    const data = await res.json()
+
+    if (res.ok && data.success) {
+      activationData.value = data.resultPacket
+      return true
+    }
+
+    deviceIdError.value = data.error || '生成失败'
+    return false
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+/* ===== 步骤控制 ===== */
+const isNextDisabled = computed(() => {
+  if (isProcessing.value) return true
+  if (currentStep.value === 1) return !validateKey()
+  if (currentStep.value === 2) return !validateDeviceId()
+  return false
+})
+
+const nextStep = async () => {
+  if (currentStep.value === 1) {
+    const hash = await calculateCardHash(key.value)
+    cardHash.value = hash
+    const ok = await verifyCard(key.value, hash)
+    if (!ok) return
+    currentStep.value = 2
+    return
+  }
+
+  if (currentStep.value === 2) {
+    const ok = await requestSignature()
+    if (!ok) return
+    currentStep.value = 3
+  }
+}
+
+const prevStep = () => {
+  if (currentStep.value > 1) currentStep.value--
+}
+
+const copyActivationData = async () => {
+  await navigator.clipboard.writeText(activationData.value)
+  copySuccess.value = true
+  setTimeout(() => (copySuccess.value = false), 2000)
+}
+
+const resetStepper = () => {
+  key.value = ''
+  deviceId.value = ''
+  activationData.value = ''
+  cardHash.value = ''
+  keyError.value = ''
+  deviceIdError.value = ''
+  currentStep.value = 1
+}
+
+onMounted(() => {
+  const params = new URLSearchParams(location.search)
+  const id = params.get('deviceId')
+  if (id) deviceId.value = id
+})
+</script>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+</style>
