@@ -11,38 +11,73 @@
     </header>
 
     <main class="max-w-md mx-auto px-4 pb-16">
-      <div class="bg-slate-900/70 rounded-2xl border border-slate-800 shadow-xl p-6">
+      <div class="bg-slate-900/70 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
 
-        <h2 class="text-xl font-bold mb-2 text-center">
-          输入 12 位购买码
-        </h2>
+        <!-- STEP 1：购买码 -->
+        <div v-if="step === 1" class="p-6">
+          <h2 class="text-xl font-bold mb-4 text-center">
+            输入 12 位购买码
+          </h2>
 
-        <input
-          v-model="key"
-          @input="validateKey"
-          class="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 mt-4"
-          placeholder="A1B2C3D4E5F6"
-        />
+          <input
+            v-model="card"
+            class="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700"
+            placeholder="A1B2C3D4E5F6"
+            @input="validateCard"
+          />
 
-        <p v-if="keyError" class="mt-2 text-red-400 text-sm text-center">
-          {{ keyError }}
-        </p>
+          <p v-if="cardError" class="mt-2 text-red-400 text-sm">
+            {{ cardError }}
+          </p>
 
-        <p v-if="success" class="mt-4 text-emerald-400 text-center">
-          ✅ 购买验证通过  
-          <br />
-          请返回游戏输入 6 位挑战码
-        </p>
+          <button
+            class="mt-6 w-full py-3 rounded-lg bg-gradient-to-r from-blue-600 to-emerald-500"
+            :disabled="loading"
+            @click="submitCard"
+          >
+            {{ loading ? '验证中…' : '确认购买' }}
+          </button>
+        </div>
 
-        <button
-          @click="submit"
-          :disabled="isProcessing || success || !isValid"
-          class="mt-6 w-full py-3 rounded-lg
-                 bg-gradient-to-r from-blue-600 to-emerald-500
-                 text-white disabled:opacity-40"
-        >
-          {{ isProcessing ? '验证中…' : '确认购买' }}
-        </button>
+        <!-- STEP 2：手环数字 -->
+        <div v-if="step === 2" class="p-6">
+          <h2 class="text-xl font-bold mb-2 text-center">
+            输入手环显示的数字
+          </h2>
+
+          <p class="text-slate-400 text-sm mb-4 text-center">
+            范围：0 ～ 4000
+          </p>
+
+          <input
+            v-model="bandNumber"
+            class="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700"
+            placeholder="例如：1234"
+          />
+
+          <p v-if="bandError" class="mt-2 text-red-400 text-sm">
+            {{ bandError }}
+          </p>
+
+          <button
+            class="mt-6 w-full py-3 rounded-lg bg-gradient-to-r from-blue-600 to-emerald-500"
+            @click="generateCode"
+          >
+            生成挑战码
+          </button>
+
+          <div v-if="challengeCode" class="mt-6 text-center">
+            <p class="text-slate-400 text-sm mb-1">
+              6 位挑战码
+            </p>
+            <div class="text-3xl font-mono tracking-widest text-emerald-400">
+              {{ challengeCode }}
+            </div>
+            <p class="mt-2 text-slate-400 text-sm">
+              请返回游戏输入该数字
+            </p>
+          </div>
+        </div>
 
       </div>
     </main>
@@ -50,15 +85,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
-const key = ref('')
-const keyError = ref('')
-const isProcessing = ref(false)
-const success = ref(false)
+/* ================= 状态 ================= */
 
-/* ===== 工具 ===== */
-const sha256 = async (text: string): Promise<string> => {
+const step = ref(1)
+const loading = ref(false)
+
+const card = ref('')
+const cardError = ref('')
+
+const bandNumber = ref('')
+const bandError = ref('')
+const challengeCode = ref('')
+
+/* ============== 常量（必须一致） ============== */
+
+const API_URL = 'https://api.verify.stillalive.asia'
+const CHALLENGE_SECRET = 'still-alive-2026'
+
+/* ============== 工具函数 ============== */
+
+const sha256Hex = async (text: string) => {
   const buf = await crypto.subtle.digest(
     'SHA-256',
     new TextEncoder().encode(text)
@@ -68,53 +116,64 @@ const sha256 = async (text: string): Promise<string> => {
     .join('')
 }
 
-/* ===== 校验 ===== */
-const validateKey = () => {
-  if (!/^[A-Z0-9]{12}$/.test(key.value)) {
-    keyError.value = '格式错误，应为 12 位大写字母或数字'
+/* ============== Step 1：购买码验证 ============== */
+
+const validateCard = () => {
+  if (!/^[A-Z0-9]{12}$/.test(card.value)) {
+    cardError.value = '购买码格式不正确'
     return false
   }
-  keyError.value = ''
+  cardError.value = ''
   return true
 }
 
-const isValid = computed(() => validateKey())
+const submitCard = async () => {
+  if (!validateCard()) return
 
-/* ===== 提交 ===== */
-const submit = async () => {
-  if (!validateKey()) return
-
+  loading.value = true
   try {
-    isProcessing.value = true
-    const hash = await sha256(key.value)
+    const hash = await sha256Hex(card.value)
 
-    const res = await fetch('https://api.verify.stillalive.asia', {
+    const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         mode: 'verify-card',
-        cardHash: hash,
-      }),
+        cardHash: hash
+      })
     })
 
     const data = await res.json()
 
     if (res.ok && data.success) {
-      success.value = true
+      step.value = 2
       return
     }
 
-    if (data.isCardInvalid) {
-      keyError.value = '购买码无效，请检查输入'
-      return
-    }
-
-    keyError.value = data.error || '验证失败'
+    cardError.value = data.error || '购买码无效'
   } catch {
-    keyError.value = '网络错误，请稍后再试'
+    cardError.value = '网络错误'
   } finally {
-    isProcessing.value = false
+    loading.value = false
   }
+}
+
+/* ============== Step 2：生成挑战码 ============== */
+
+const generateCode = async () => {
+  const n = Number(bandNumber.value)
+
+  if (!Number.isInteger(n) || n < 0 || n > 4000) {
+    bandError.value = '请输入 0 到 4000 之间的整数'
+    return
+  }
+
+  bandError.value = ''
+
+  const raw = CHALLENGE_SECRET + n
+  const hash = await sha256Hex(raw)
+  const digits = hash.replace(/\D/g, '')
+  challengeCode.value = digits.slice(0, 6)
 }
 </script>
 
